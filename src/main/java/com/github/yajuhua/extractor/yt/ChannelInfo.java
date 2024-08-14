@@ -23,6 +23,7 @@ public class ChannelInfo {
     private String name;
     private String image;
     private String description;
+    private String id;
     private List<String> tabNames;
     public static ChannelInfo getInfo(String url) throws Exception{
         //获取html
@@ -31,6 +32,7 @@ public class ChannelInfo {
         String name = null;
         String image = null;
         String description = null;
+        String id = null;
         List<String> tabNames = new ArrayList<>();
         Document document = Jsoup.parse(htmlStr);
         Elements metaList = document.getElementsByTag("meta");
@@ -46,6 +48,12 @@ public class ChannelInfo {
                 description = content;
             }else if (!property.isEmpty() && property.equals("og:title")){
                 name = content;
+            }else if (!property.isEmpty() && property.equals("og:url")){
+                if (content.contains("playlist?list=")){
+                    id = content.split("=")[1];
+                }else {
+                    id = content.substring(content.lastIndexOf("/")+1);
+                }
             }
         }
 
@@ -60,6 +68,7 @@ public class ChannelInfo {
                 .image(image)
                 .tabNames(tabNames)
                 .name(name)
+                .id(id)
                 .build();
     }
 
