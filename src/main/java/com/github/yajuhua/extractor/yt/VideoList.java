@@ -11,7 +11,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -149,7 +148,9 @@ public class VideoList {
             List<JsonObject> videoRendererList = getVideoRenderer(tabRendererMap.get(type));
             for (JsonObject object : videoRendererList) {
                 VideoInfo videoInfo = getVideoInfo(object);
-                videoInfoList.add(videoInfo);
+                if (videoInfo != null){
+                    videoInfoList.add(videoInfo);
+                }
             }
             return videoInfoList;
         }else {
@@ -169,7 +170,9 @@ public class VideoList {
         List<JsonObject> playlistVideoRenderer = getPlaylistVideoRenderer(htmlStr);
         for (JsonObject object : playlistVideoRenderer) {
             VideoInfo videoInfo = getVideoInfo(object);
-            videoInfoList.add(videoInfo);
+            if (videoInfo != null){
+                videoInfoList.add(videoInfo);
+            }
         }
         return videoInfoList;
     }
@@ -257,8 +260,13 @@ public class VideoList {
             }
         }
 
-        //时长
-        String lengthText = videoRenderer.get("lengthText").getAsJsonObject().get("simpleText").getAsString();
+        //时长,如果找不到时长，那么说明正在直播，直接返回null
+        String lengthText = null;
+        if (videoRenderer.has("lengthText")){
+            lengthText = videoRenderer.get("lengthText").getAsJsonObject().get("simpleText").getAsString();
+        }else {
+            return null;
+        }
         Integer duration = ParseTime.toSecond(lengthText);
 
         //封装
