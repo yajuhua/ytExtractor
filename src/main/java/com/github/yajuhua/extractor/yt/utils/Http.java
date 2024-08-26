@@ -1,7 +1,8 @@
 package com.github.yajuhua.extractor.yt.utils;
 
 import com.github.yajuhua.extractor.yt.YtExtrator;
-import lombok.extern.slf4j.Slf4j;
+import com.github.yajuhua.extractor.yt.downloader.Request;
+import com.github.yajuhua.extractor.yt.downloader.Response;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -68,48 +69,77 @@ public class Http {
     }
 
     /**
-     * 发送post请求
-     * @param url
-     * @param params
-     * @param heads
-     * @return
+     * 发送POST请求
+     * @param url 请求的URL（包含参数）
+     * @param body 请求体参数
+     * @param headers 请求头
+     * @return 响应内容
      */
-    public static String post(String url, String params, Map heads){
-        String content = null;
+    public static String post(String url, String body, Map<String, String> headers) {
+        StringBuilder content = new StringBuilder();
+        HttpURLConnection connection = null;
+
         try {
-            HttpURLConnection connection;
-            if (YtExtrator.proxy != null){
-                connection = (HttpURLConnection)new URL(url).openConnection(YtExtrator.proxy);
-            }else {
-                connection = (HttpURLConnection)new URL(url).openConnection();
+            // 创建连接
+            if (YtExtrator.proxy != null) {
+                connection = (HttpURLConnection) new URL(url).openConnection(YtExtrator.proxy);
+            } else {
+                connection = (HttpURLConnection) new URL(url).openConnection();
             }
             connection.setRequestMethod("POST");
-            //设置请求头
-            if (heads != null && !heads.isEmpty()){
-                Set set = heads.keySet();
-                for (Object key : set) {
-                    connection.setRequestProperty((String) key, (String) heads.get(key));
+
+            // 设置请求头
+            if (headers != null && !headers.isEmpty()) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    connection.setRequestProperty(entry.getKey(), entry.getValue());
                 }
             }
-            if (params != null){
+
+            // 发送请求体
+            if (body != null && !body.isEmpty()) {
                 connection.setDoOutput(true);
-                OutputStream os = connection.getOutputStream();
-                byte[] bytes = params.getBytes("UTF-8");
-                os.write(bytes,0,bytes.length);
-                os.flush();
-                os.close();
+                connection.setRequestProperty("Content-Type", "application/json"); // 设置Content-Type为JSON
+                try (OutputStream os = connection.getOutputStream()) {
+                    byte[] bytes = body.getBytes("UTF-8");
+                    os.write(bytes);
+                    os.flush();
+                }
             }
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(),"UTF-8"));
-            String line;
-            content = "";
-            while ((line = reader.readLine()) != null) {
-                content = content + line;
+            // 读取响应内容
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line);
+                }
             }
-            reader.close();
+
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace(); // 打印异常信息
+            throw new RuntimeException("Failed to send POST request", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect(); // 断开连接
+            }
         }
-        return content;
+        return content.toString();
+    }
+
+    /**
+     * 获取页面html字符串
+     * @param url
+     * @return
+     * @throws Exception
+     */
+    public static String getHtml(String url) throws Exception {
+        Request get = Request.builder()
+                .httpMethod("GET")
+                .url(url)
+                .build();
+        Response response = YtExtrator.getDownloader().execute(get);
+        if (response.getResponseCode() != 200){
+            throw new Exception(response.getResponseMessage());
+        }
+        return response.getResponseBody();
     }
 }
