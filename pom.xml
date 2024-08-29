@@ -6,7 +6,7 @@
 
     <groupId>com.github.yajuhua</groupId>
     <artifactId>ytExtractor</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
     <description>提取youtube页面并解析</description>
 
     <dependencies>
